@@ -1,0 +1,352 @@
+// Tipos compartilhados do Flow Engine (admin + chat público).
+
+export type NodeType =
+  | "start"
+  | "text"
+  | "image"
+  | "video"
+  | "audio"
+  | "question"
+  | "buttons"
+  | "offer"
+  | "delivery"
+  | "link"
+  | "tag"
+  | "end"
+  | "ai";
+
+/**
+ * inherit: usa o atraso padrão do fluxo · fixed: delayMs · random: entre delayMinMs e delayMaxMs ·
+ * auto: proporcional ao tamanho do texto (como alguém digitando)
+ */
+export type DelayMode = "inherit" | "fixed" | "random" | "auto";
+
+export interface DelaySettings {
+  delayMode?: DelayMode;
+  delayMs?: number;
+  delayMinMs?: number;
+  delayMaxMs?: number;
+  /** mostra "● ● ●" durante o delay */
+  showTyping?: boolean;
+}
+
+export interface ChoiceButton {
+  id: string;
+  label: string;
+  /** palavras/frases alternativas que também levam a este caminho (separadas por vírgula) */
+  keywords?: string;
+}
+
+/** type: o lead digita (padrão) · both: digita ou clica · click: só botões */
+export type AnswerInputMode = "type" | "both" | "click";
+
+export interface TextContent {
+  text: string;
+  /** remetente: personagem (bot) ou mensagem simulada do usuário */
+  sender?: "bot" | "user";
+}
+export interface ImageContent {
+  url: string;
+  caption?: string;
+}
+export interface VideoContent {
+  url: string;
+  thumbnailUrl?: string;
+  caption?: string;
+  autoplay?: boolean;
+  /** visualização única: o lead assiste uma vez e o link só é liberado pelo servidor no play */
+  viewOnce?: boolean;
+  /** (mensagem salva) vídeo de visualização única já aberto */
+  viewed?: boolean;
+}
+export interface AudioContent {
+  url: string;
+  durationSec?: number;
+  caption?: string;
+}
+export interface QuestionContent {
+  text: string;
+  mode: "open" | "buttons";
+  /** onde salvar a resposta aberta: name, email, phone ou chave livre */
+  variable?: string;
+  placeholder?: string;
+  buttons?: ChoiceButton[];
+  inputMode?: AnswerInputMode;
+}
+export interface ButtonsContent {
+  text?: string;
+  buttons: ChoiceButton[];
+  inputMode?: AnswerInputMode;
+  placeholder?: string;
+}
+/** carta da oferta de tarot: o lead vê só o verso; nome, imagem e leitura aparecem depois do pagamento */
+export interface TarotCard {
+  id: string;
+  /** posição (ex.: Passado, Presente, Futuro) — aparece com a carta virada */
+  label?: string;
+  name?: string;
+  imageUrl?: string;
+  meaning?: string;
+}
+/** Textos da oferta "Canal VIP AO VIVO" (vazios = textos padrão do país do fluxo). */
+export interface VipOfferTexts {
+  /** prévia ao tocar no card: vídeo ou foto da live com título ("Já estou começando 🔴") e o botão que já gera o PIX */
+  previewUrl?: string;
+  previewTitle?: string;
+  previewButton?: string;
+  /** selo do topo ("UPGRADE EXCLUSIVO 💎") */
+  badge?: string;
+  /** título ("QUER O ACESSO") e a parte em destaque ("TOTAL? 💦") */
+  title?: string;
+  highlight?: string;
+  /** frase acima dos benefícios */
+  intro?: string;
+  /** benefícios (um por linha no painel) */
+  benefits?: string[];
+  /** botões dos ingressos */
+  completeLabel?: string;
+  basicLabel?: string;
+  /** folha do pagamento */
+  payTitle?: string;
+  paySubtitle?: string;
+  /** mensagens que aparecem no chat, acima do pagamento, enquanto ele não paga */
+  payMessages?: string[];
+  /** imagem borrada com cadeado mostrada no chat junto com o pagamento */
+  lockedImageUrl?: string;
+  /** pop-up quando ele tenta sair do pagamento */
+  exitTitle?: string;
+  exitText?: string;
+  stayLabel?: string;
+  stayHint?: string;
+  leaveLabel?: string;
+}
+export interface OfferContent {
+  productId: string;
+  headline?: string;
+  description?: string;
+  ctaLabel?: string;
+  /** card: card de compra · call: chamada de vídeo recebida (Atender gera o PIX, Recusar segue "Recusou a chamada") · tarot: cartas viradas reveladas após o pagamento (só ofertas do Cérebro) */
+  style?: "card" | "call" | "tarot" | "live";
+  /** canal VIP AO VIVO (style "live"): textos do upgrade, do pagamento e do pop-up de saída; o 2º ingresso (acesso básico) é o downsellProductId */
+  vip?: VipOfferTexts;
+  /** tarot: as cartas (no chat público só vão id e posição até o pagamento) */
+  tarotCards?: TarotCard[];
+  /** tarot: imagem do verso das cartas */
+  tarotBackUrl?: string;
+  /** vídeo da chamada (aba Vídeos) */
+  videoId?: string;
+  /** chamada de vídeo 02: ao atender, o lead já vê o trecho FREE em loop e paga por cima do vídeo para liberar o VIP */
+  freeLoop?: boolean;
+  /** chamada: produto oferecido quando o lead recusa (ex.: chamada mais curta e mais barata) */
+  downsellProductId?: string;
+  /** chamada: texto do pop-up do downsell */
+  downsellText?: string;
+}
+export interface DeliveryContent {
+  text?: string;
+  productId?: string;
+  buttonLabel?: string;
+}
+export interface LinkContent {
+  text?: string;
+  url: string;
+  buttonLabel?: string;
+}
+export interface TagContent {
+  tagId: string;
+}
+export interface EndContent {
+  text?: string;
+}
+/** Cérebro: a IA conversa com o lead (texto livre) e pode mostrar ofertas e mandar áudios do cérebro. */
+export interface AiContent {
+  brainId: string;
+  /** objetivo deste ponto da conversa */
+  goal?: string;
+  /** wait: espera o lead escrever · ai: a IA puxa a conversa */
+  startMode?: "wait" | "ai";
+  placeholder?: string;
+}
+
+export interface NodeContentMap {
+  start: Record<string, never>;
+  text: TextContent;
+  image: ImageContent;
+  video: VideoContent;
+  audio: AudioContent;
+  question: QuestionContent;
+  buttons: ButtonsContent;
+  offer: OfferContent;
+  delivery: DeliveryContent;
+  link: LinkContent;
+  tag: TagContent;
+  end: EndContent;
+  ai: AiContent;
+}
+
+export interface FlowNode<T extends NodeType = NodeType> {
+  id: string;
+  type: T;
+  content: NodeContentMap[T];
+  settings: DelaySettings & { minimized?: boolean; label?: string };
+  position: { x: number; y: number };
+  /** conteúdo pago ainda não liberado (apenas no chat público) */
+  locked?: boolean;
+}
+
+export interface FlowEdge {
+  id: string;
+  source: string;
+  target: string;
+  /** "default" | "btn:<buttonId>" | "payment:approved" | "payment:failed" | "ai:offers" (Cérebro: mostrar botões de oferta) */
+  condition: string;
+}
+
+export interface FlowGraph {
+  nodes: FlowNode[];
+  edges: FlowEdge[];
+}
+
+export interface RecoverySettings {
+  enabled: boolean;
+  delayMinutes: number;
+  message: string;
+  buttonLabel: string;
+}
+
+/** Atraso padrão das mensagens do fluxo. */
+export interface FunnelDelay {
+  mode: "fixed" | "random" | "auto";
+  ms?: number;
+  minMs?: number;
+  maxMs?: number;
+}
+
+export const DEFAULT_FUNNEL_DELAY: FunnelDelay = { mode: "auto" };
+
+/** IDs públicos dos pixels (vão ao navegador). Tokens secretos ficam só no servidor. */
+export interface TrackingIds {
+  metaPixelId?: string;
+  tiktokPixelId?: string;
+  googleTagId?: string;
+}
+
+/** Aparência do chat */
+export interface ChatAppearance {
+  /** visual do chat: "default" (Hot Secret) ou "messenger" (mensageiro escuro, balões verdes) */
+  theme?: "default" | "messenger";
+  /** vídeo em loop (mudo) atrás da conversa; os balões ficam transparentes */
+  bgVideoUrl?: string;
+  /** escurecimento do vídeo de fundo, 0–90 (%) */
+  bgDim?: number;
+  /** com vídeo de fundo: mensagens antigas vão sumindo (padrão: sim) */
+  fadeOld?: boolean;
+  /** quantas mensagens ficam na tela quando as antigas somem (padrão 5) */
+  visibleCount?: number;
+}
+
+/** prévia do Canal VIP AO VIVO: liberada uma por uma no botão "Ver prévia" */
+export interface LivePreview {
+  id: string;
+  /** vip: card do Grupo VIP como bônus (groupId; a legenda vira a frase do bônus) */
+  kind: "image" | "video" | "audio" | "vip";
+  url: string;
+  caption?: string;
+  groupId?: string;
+}
+
+/** prévia com conteúdo: arquivo enviado ou (card do VIP) grupo escolhido */
+export const livePreviewReady = (p: LivePreview) => (p.kind === "vip" ? !!p.groupId : !!p.url);
+/** Modo "Canal VIP AO VIVO" do fluxo: ligação ao entrar, chat com cara de live e prévias uma a uma. */
+export interface LiveSettings {
+  enabled?: boolean;
+  /** idade mostrada no topo */
+  age?: number;
+  /** cidade fixa; vazio = a cidade do lead (pela conexão dele) */
+  city?: string;
+  /** frase da tela de ligação ("{nome} quer uma conversa com você...") */
+  ringText?: string;
+  previews?: LivePreview[];
+  /** rodapé dos cards de prévia ("No VIP eu mostro tudo sem limites 💋") */
+  previewFooter?: string;
+  /** texto do botão ("Ver Prévia") */
+  previewButton?: string;
+}
+/** o que vai ao navegador: as prévias só saem uma por uma pelo servidor */
+export interface PublicLive {
+  age?: number;
+  city?: string;
+  ringText?: string;
+  previewCount: number;
+  previewFooter?: string;
+  previewButton?: string;
+}
+
+export interface FunnelSettings {
+  defaultDelayMs?: number;
+  appearance?: ChatAppearance;
+  /** pixels deste fluxo (vazio = usa os pixels padrão de Configurações) */
+  tracking?: TrackingIds;
+  delay?: FunnelDelay;
+  recovery?: RecoverySettings;
+  /** país do fluxo: pt-BR (Brasil), es-MX (México) ou es-AR (Argentina) — idioma do chat e da IA */
+  locale?: "pt-BR" | "es-MX" | "es-AR";
+  /** Canal VIP AO VIVO */
+  live?: LiveSettings;
+}
+
+/** Produto exposto ao front público (sem link de entrega). */
+export interface PublicProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  /** vídeo de prévia do produto */
+  videoUrl?: string | null;
+  originalPrice: number | null;
+  price: number;
+  /** BRL, MXN ou ARS */
+  currency?: string;
+  /** checkout externo opcional (link do produto) */
+  externalCheckoutUrl: string | null;
+  /** pixel da Meta só desta oferta (só o ID, público) */
+  metaPixelId?: string | null;
+  /** o gateway pede dados do comprador antes de gerar o pagamento (Zenith: México/Argentina) */
+  payerForm?: boolean;
+}
+
+export interface PublicCharacter {
+  name: string;
+  avatarUrl: string | null;
+  description: string | null;
+  status: string;
+  showOnline: boolean;
+}
+
+export interface PublicFunnel {
+  id: string;
+  name: string;
+  slug: string;
+  initialMessage: string | null;
+  character: PublicCharacter;
+  graph: FlowGraph;
+  products: Record<string, PublicProduct>;
+  experimentId?: string | null;
+  variantId?: string | null;
+  delay?: FunnelDelay;
+  tracking?: TrackingIds;
+  appearance?: ChatAppearance;
+  /** pt-BR, es-MX ou es-AR */
+  locale?: "pt-BR" | "es-MX" | "es-AR";
+  /** modo Canal VIP AO VIVO ligado */
+  live?: PublicLive;
+}
+
+export const DEFAULT_RECOVERY: RecoverySettings = {
+  enabled: false,
+  delayMinutes: 10,
+  message: "Ei... você estava quase lá 👀\n\nSeu acesso ainda está reservado.",
+  buttonLabel: "CONTINUAR",
+};
+/** mensagem de recuperação padrão nos fluxos em espanhol (quando o dono não escreveu a dele) */
+export const DEFAULT_RECOVERY_ES = { message: "Oye... ya casi lo tenías 👀\n\nTu acceso sigue reservado.", buttonLabel: "CONTINUAR" };

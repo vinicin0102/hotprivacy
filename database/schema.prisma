@@ -1,0 +1,542 @@
+// HOT SECRET — modelo relacional
+// Permite responder: qual lead entrou em qual fluxo, passou por quais nós,
+// clicou em quais botões, iniciou qual checkout e comprou qual produto.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  VIEWER
+}
+
+enum FunnelStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum LeadStage {
+  NEW
+  INTERESTED
+  CHECKOUT
+  BUYER
+  ABANDONED
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING
+  APPROVED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  PIX
+  CARD
+}
+
+/// Contas com acesso ao painel administrativo ("users" / "admins").
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         UserRole  @default(ADMIN)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Character {
+  id              String   @id @default(cuid())
+  name            String
+  avatarUrl       String?
+  description     String?
+  status          String   @default("online")
+  showOnline      Boolean  @default(true)
+  initialMessages Json     @default("[]")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  funnels Funnel[]
+
+  @@map("characters")
+}
+
+model Funnel {
+  id             String       @id @default(cuid())
+  name           String
+  description    String?
+  slug           String       @unique
+  status         FunnelStatus @default(DRAFT)
+  characterId    String?
+  initialMessage String?
+  /// Configurações gerais: digitação, recuperação de checkout etc.
+  settings       Json         @default("{}")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  character     Character?          @relation(fields: [characterId], references: [id], onDelete: SetNull)
+  nodes         FunnelNode[]
+  edges         FunnelEdge[]
+  offers        Offer[]
+  leads         Lead[]
+  conversations Conversation[]
+  payments      Payment[]
+  events        Event[]
+  variants      ExperimentVariant[]
+
+  @@map("funnels")
+}
+
+model FunnelNode {
+  funnelId  String
+  id        String
+  type      String
+  content   Json     @default("{}")
+  settings  Json     @default("{}")
+  positionX Float    @default(0)
+  positionY Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  funnel Funnel @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+
+  @@id([funnelId, id])
+  @@map("funnel_nodes")
+}
+
+model FunnelEdge {
+  funnelId   String
+  id         String
+  sourceNode String
+  targetNode String
+  /// "default", "btn:<id>", "payment:approved", "payment:failed"
+  condition  String @default("default")
+
+  funnel Funnel @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+
+  @@id([funnelId, id])
+  @@index([funnelId, sourceNode])
+  @@map("funnel_edges")
+}
+
+model Lead {
+  id                String    @id @default(cuid())
+  funnelId          String?
+  name              String?
+  email             String?
+  phone             String?
+  cpf               String?
+  stage             LeadStage @default(NEW)
+  currentNodeId     String?
+  variables         Json      @default("{}")
+  utmSource         String?
+  utmMedium         String?
+  utmCampaign       String?
+  utmContent        String?
+  utmTerm           String?
+  referrer          String?
+  landingPage       String?
+  device            String?
+  browser           String?
+  os                String?
+  country           String?
+  experimentId      String?
+  variantId         String?
+  /// sinais para a API de Conversões (Meta): dispositivo da compra e cookies do pixel
+  clientIp          String?
+  userAgent         String?
+  fbp               String?
+  fbc               String?
+  lastInteractionAt DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  funnel        Funnel?        @relation(fields: [funnelId], references: [id], onDelete: SetNull)
+  experiment    Experiment?    @relation(fields: [experimentId], references: [id], onDelete: SetNull)
+  conversations Conversation[]
+  payments      Payment[]
+  tags          LeadTag[]
+  events        Event[]
+
+  @@index([funnelId, createdAt])
+  @@index([stage])
+  @@index([utmCampaign])
+  @@map("leads")
+}
+
+model Conversation {
+  id                String    @id @default(cuid())
+  leadId            String
+  funnelId          String?
+  status            String    @default("active") // active | completed
+  currentNodeId     String?
+  /// checkout iniciado (CTA da oferta clicado) — base da recuperação de checkout
+  checkoutStartedAt DateTime?
+  checkoutNodeId    String?
+  recoverySentAt    DateTime?
+  startedAt         DateTime  @default(now())
+  endedAt           DateTime?
+  updatedAt         DateTime  @updatedAt
+
+  lead     Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  funnel   Funnel?   @relation(fields: [funnelId], references: [id], onDelete: SetNull)
+  messages Message[]
+  payments Payment[]
+
+  @@index([funnelId, startedAt])
+  @@index([checkoutStartedAt])
+  @@map("conversations")
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  /// bot | user | system
+  sender         String
+  /// text | image | video | audio | buttons | offer | checkout | payment | delivery | link
+  type           String
+  content        Json     @default("{}")
+  nodeId         String?
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  imageUrl      String?
+  /// vídeo de prévia exibido no card da oferta (só com botão de play)
+  videoUrl      String?
+  /// valores em centavos (na moeda do produto)
+  originalPrice Int?
+  price         Int
+  /// moeda: BRL (Brasil) ou MXN (México)
+  currency      String   @default("BRL")
+  /// link de checkout externo opcional (se preenchido, usado no lugar do checkout integrado)
+  checkoutUrl   String?
+  /// link de acesso liberado SOMENTE após pagamento aprovado (nunca enviado ao front antes disso)
+  deliveryUrl   String?
+  /// pixel da Meta só desta oferta (checkout e compra vão para ele no lugar do pixel do fluxo)
+  metaPixelId         String?
+  /// token da API de Conversões desse pixel (criptografado; vazio = usa o token padrão)
+  metaCapiTokenSealed String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  offers   Offer[]
+  payments Payment[]
+
+  @@map("products")
+}
+
+/// Ofertas exibidas dentro do chat (sincronizadas a partir dos nós "offer").
+model Offer {
+  id        String   @id @default(cuid())
+  funnelId  String
+  nodeId    String
+  productId String
+  headline  String?
+  ctaLabel  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  funnel  Funnel  @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([funnelId, nodeId])
+  @@map("offers")
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  leadId            String
+  conversationId    String?
+  funnelId          String?
+  productId         String
+  offerNodeId       String?
+  amount            Int
+  currency          String        @default("BRL")
+  method            PaymentMethod
+  status            PaymentStatus @default(CREATED)
+  provider          String
+  providerPaymentId String?
+  pixQrCode         String?
+  pixQrCodeBase64   String?
+  redirectUrl       String?
+  /// dados técnicos do pagador enviados ao gateway (o visitante não preenche nada)
+  customerName      String
+  customerEmail     String
+  customerCpf       String?
+  /// Zenith: chave de idempotência (UUID) desta intenção de compra — reutilizada só em retries do mesmo corpo
+  idempotencyKey    String?       @unique
+  /// Zenith: corpo exato (bytes) enviado ao gateway; texto e não JSONB, que reordenaria as chaves.
+  /// Guardado só enquanto o resultado é incerto (timeout/5xx) e apagado ao final.
+  providerRequest   String?
+  /// true = a criação no gateway teve resultado incerto; reenviar com a mesma chave antes de criar outra
+  uncertain         Boolean       @default(false)
+  /// id do pagamento no gateway (Zenith: payment.id, conferido no webhook junto com o checkout)
+  gatewayPaymentId  String?
+  /// código do método do catálogo do gateway (ex.: spei)
+  methodCode        String?
+  /// instruções de pagamento devolvidas pelo gateway (ex.: CLABE e passos do SPEI)
+  nextAction        Json?
+  approvedAt        DateTime?
+  lastSyncedAt      DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  lead         Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  funnel       Funnel?       @relation(fields: [funnelId], references: [id], onDelete: SetNull)
+  product      Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+  webhooks     WebhookLog[]
+
+  @@unique([provider, providerPaymentId])
+  @@index([status, createdAt])
+  @@index([funnelId, createdAt])
+  @@map("payments")
+}
+
+/// Eventos de webhook já processados (consumidor idempotente: o mesmo id nunca é aplicado duas vezes)
+model WebhookEvent {
+  id        String   @id @default(cuid())
+  provider  String
+  eventId   String
+  paymentId String?
+  createdAt DateTime @default(now())
+
+  @@unique([provider, eventId])
+  @@map("webhook_events")
+}
+
+model WebhookLog {
+  id             String   @id @default(cuid())
+  provider       String
+  paymentId      String?
+  eventType      String?
+  signatureValid Boolean
+  payload        Json
+  createdAt      DateTime @default(now())
+
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@map("webhook_logs")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String   @default("#D94F7D")
+  createdAt DateTime @default(now())
+
+  leads LeadTag[]
+
+  @@map("tags")
+}
+
+model LeadTag {
+  leadId    String
+  tagId     String
+  /// manual | automation | flow
+  source    String   @default("manual")
+  createdAt DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([leadId, tagId])
+  @@map("lead_tags")
+}
+
+model Event {
+  id             String   @id @default(cuid())
+  leadId         String
+  funnelId       String?
+  conversationId String?
+  type           String
+  nodeId         String?
+  data           Json     @default("{}")
+  createdAt      DateTime @default(now())
+
+  lead   Lead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  funnel Funnel? @relation(fields: [funnelId], references: [id], onDelete: SetNull)
+
+  @@index([funnelId, type, createdAt])
+  @@index([leadId, createdAt])
+  @@index([type, createdAt])
+  @@map("events")
+}
+
+/// Regras automáticas: quando <evento> acontecer → <ação>.
+model Automation {
+  id        String   @id @default(cuid())
+  name      String
+  trigger   String
+  funnelId  String?
+  action    String // add_tag | remove_tag
+  tagId     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("automations")
+}
+
+/// A/B test: um slug distribui visitantes entre fluxos por peso.
+model Experiment {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  variants ExperimentVariant[]
+  leads    Lead[]
+
+  @@map("experiments")
+}
+
+model ExperimentVariant {
+  id           String @id @default(cuid())
+  experimentId String
+  funnelId     String
+  label        String
+  weight       Int    @default(50)
+
+  experiment Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  funnel     Funnel     @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+
+  @@map("experiment_variants")
+}
+
+/// Arquivos enviados pelo painel quando não há storage externo (Supabase Storage / Vercel Blob).
+model Media {
+  id        String   @id @default(cuid())
+  mime      String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
+
+  @@map("media")
+}
+
+/// Configurações gerais do painel (ex.: pixels padrão). Valores secretos nunca vão ao navegador.
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}
+
+/// Cérebro: personalidade, conteúdo e ofertas que a IA usa para responder os leads
+model Brain {
+  id              String   @id @default(cuid())
+  name            String
+  active          Boolean  @default(true)
+  /// personalidade e jeito de falar
+  persona         String   @default("")
+  /// base de conhecimento (produto, dúvidas, objeções...)
+  knowledge       String   @default("")
+  /// regras extras (o que nunca dizer, limites...)
+  rules           String   @default("")
+  /// regras obrigatórias: o que a IA DEVE fazer sempre (uma por linha)
+  mustRules       String   @default("")
+  /// exemplos de conversas que venderam bem (a IA imita o jeito, não copia)
+  examples        String   @default("")
+  /// [{ id, productId, when, pitch, headline, ctaLabel }]
+  offers          Json     @default("[]")
+  /// áudios gravados que a IA pode enviar: [{ id, url, when }]
+  audios          Json     @default("[]")
+  /// imagens (prévias) que a IA pode enviar: [{ id, url, when }]
+  images          Json     @default("[]")
+  /// ligações de voz: [{ id, url (áudio), when, offerId, endText }]
+  voiceCalls      Json     @default("[]")
+  maxReplies      Int      @default(30)
+  fallbackMessage String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("brains")
+}
+
+
+/// Vídeo da chamada/sala: linha do tempo com trecho FREE (antes de pagar), VIP (depois), falas no chat e upsells
+model Video {
+  id         String   @id @default(cuid())
+  name       String
+  url        String
+  posterUrl  String?
+  durationMs Int      @default(0)
+  /// { free: {start,end}, vip: {start,end}, chat: [{id,start,end,text}], markers: [{id,at,label,productId,text,ctaLabel,pause}] } (ms)
+  timeline   Json     @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("videos")
+}
+
+/// Grupo VIP de uma modelo: perfil com fotos/vídeos; o conteúdo VIP libera pagando a assinatura e posts pagos à parte
+model VipGroup {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  /// personagem/modelo (nome e foto do perfil quando o grupo não tem os próprios)
+  characterId String?
+  bio         String?
+  avatarUrl   String?
+  coverUrl    String?
+  /// produto da assinatura VIP: pago, libera todos os posts "Só VIP"
+  productId   String?
+  /// país do grupo: idioma da página e moeda cobrada (pt-BR = reais/PIX)
+  locale      String   @default("pt-BR")
+  published   Boolean  @default(false)
+  /// { headline, perks: string[], ctaLabel }
+  settings    Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  posts VipPost[]
+
+  @@map("vip_groups")
+}
+
+model VipPost {
+  id          String   @id @default(cuid())
+  groupId     String
+  caption     String?
+  /// [{ url, kind: "image" | "video", preview?: url da prévia borrada (o que aparece bloqueado) }]
+  media       Json     @default("[]")
+  /// free = todos veem · vip = assinantes · paid = paga à parte (productId)
+  access      String   @default("vip")
+  productId   String?
+  pinned      Boolean  @default(false)
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  group VipGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, publishedAt])
+  @@map("vip_posts")
+}
