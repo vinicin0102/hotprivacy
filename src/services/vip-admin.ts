@@ -39,13 +39,17 @@ export const vipGroupSchema = z.object({
       samplesTitle: txt(80),
       plans: z
         .array(z.object({ productId: z.string().trim().min(1, "Escolha o produto do plano").max(64), label: txt(40), badge: txt(20) }))
-        .max(4, "No máximo 4 planos extras")
+        .max(10, "No máximo 10 planos extras")
         .optional(),
       promoBar: txt(120),
       planBadge: txt(40),
       planNote: txt(60),
       promoTitle: txt(40),
       barText: txt(60),
+      showImages: txt(12),
+      showVideos: txt(12),
+      showPosts: txt(12),
+      showMedia: txt(12),
     })
     .default({}),
 });
@@ -84,6 +88,10 @@ export function vipGroupData(d: VipGroupInput) {
       ...(d.settings.planNote ? { planNote: d.settings.planNote } : {}),
       ...(d.settings.promoTitle ? { promoTitle: d.settings.promoTitle } : {}),
       ...(d.settings.barText ? { barText: d.settings.barText } : {}),
+      ...(d.settings.showImages ? { showImages: d.settings.showImages } : {}),
+      ...(d.settings.showVideos ? { showVideos: d.settings.showVideos } : {}),
+      ...(d.settings.showPosts ? { showPosts: d.settings.showPosts } : {}),
+      ...(d.settings.showMedia ? { showMedia: d.settings.showMedia } : {}),
     } as Prisma.InputJsonValue,
   };
 }

@@ -80,3 +80,11 @@ test("textos do tema claro: faixa, selos do plano e barra de baixo", () => {
   assert.equal(s.promoTitle, "Promoções");
   assert.equal(s.barText, "VEJA TUDO POR {preco}");
 });
+
+test("números do perfil editáveis e até 10 planos extras", () => {
+  const s = vipSettings({ showImages: " 401 ", showVideos: "", showPosts: "93", plans: Array.from({ length: 12 }, (_, i) => ({ productId: `p${i}` })) });
+  assert.equal(s.showImages, "401");
+  assert.equal(s.showVideos, undefined);
+  assert.equal(s.showPosts, "93");
+  assert.equal(s.plans?.length, 10);
+});

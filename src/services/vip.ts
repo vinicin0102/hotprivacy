@@ -64,6 +64,11 @@ export interface VipSettings {
   promoTitle?: string;
   /** texto da barra fixa de baixo (tema claro); {preco} vira o preço da assinatura */
   barText?: string;
+  /** números mostrados no perfil e nas abas (texto livre, ex.: "401"); vazio = contagem real dos posts */
+  showImages?: string;
+  showVideos?: string;
+  showPosts?: string;
+  showMedia?: string;
 }
 export interface VipPlan {
   productId: string;
@@ -92,7 +97,7 @@ function vipPlans(raw: unknown): VipPlan[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((p): p is Record<string, unknown> => !!p && typeof p === "object" && !!str((p as { productId?: unknown }).productId))
-    .slice(0, 4)
+    .slice(0, 10)
     .map((p) => {
       const label = str(p.label);
       const badge = str(p.badge);
@@ -125,6 +130,10 @@ export function vipSettings(raw: unknown): VipSettings {
     ...opt("planNote", str(s.planNote)),
     ...opt("promoTitle", str(s.promoTitle)),
     ...opt("barText", str(s.barText)),
+    ...opt("showImages", str(s.showImages)),
+    ...opt("showVideos", str(s.showVideos)),
+    ...opt("showPosts", str(s.showPosts)),
+    ...opt("showMedia", str(s.showMedia)),
   };
 }
 

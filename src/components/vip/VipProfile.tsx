@@ -134,6 +134,13 @@ export function VipProfile({ slug, sandbox, light: lightInitial = false }: { slu
   const showOffer = offerSub && ctaOpen;
   const buyFor = (p: Post) => (p.access === "paid" ? p.product : p.access === "vip" ? sub : null);
   const media = state.posts.flatMap((p) => p.media.map((m, i) => ({ ...m, post: p, i })));
+  // números do perfil: o que o dono digitou no painel, ou a contagem real dos posts
+  const shown = {
+    images: s.showImages || String(g.counts.images),
+    videos: s.showVideos || String(g.counts.videos),
+    posts: s.showPosts || String(g.counts.posts),
+    media: s.showMedia || String(media.length),
+  };
   // amostras: as mídias dos posts grátis, numa faixa antes do feed
   const samples =
     s.samples === false
@@ -214,10 +221,10 @@ export function VipProfile({ slug, sandbox, light: lightInitial = false }: { slu
               <h1 className="vg-cover-name">{g.name}</h1>
               <div className="vg-istats">
                 <span>
-                  <Ico name="image" /> {g.counts.images}
+                  <Ico name="image" /> {shown.images}
                 </span>
                 <span>
-                  <Ico name="video" /> {g.counts.videos}
+                  <Ico name="video" /> {shown.videos}
                 </span>
                 {s.likes && (
                   <span>
@@ -251,13 +258,13 @@ export function VipProfile({ slug, sandbox, light: lightInitial = false }: { slu
           {!light && (
             <div className="vg-stats">
               <span>
-                <b>{g.counts.posts}</b> {t.posts}
+                <b>{shown.posts}</b> {t.posts}
               </span>
               <span>
-                <b>{g.counts.images}</b> {t.photos}
+                <b>{shown.images}</b> {t.photos}
               </span>
               <span>
-                <b>{g.counts.videos}</b> {t.videos}
+                <b>{shown.videos}</b> {t.videos}
               </span>
               {s.likes && (
                 <span>
@@ -306,10 +313,10 @@ export function VipProfile({ slug, sandbox, light: lightInitial = false }: { slu
 
       <nav className="vg-tabs" role="tablist">
         <button role="tab" aria-selected={tab === "posts"} className={tab === "posts" ? "active" : ""} onClick={() => setTab("posts")}>
-          {light ? `${g.counts.posts} ${t.postsTab.toLowerCase()}` : t.tabPosts}
+          {light ? `${shown.posts} ${t.postsTab.toLowerCase()}` : t.tabPosts}
         </button>
         <button role="tab" aria-selected={tab === "media"} className={tab === "media" ? "active" : ""} onClick={() => setTab("media")}>
-          {light ? `${media.length} ${t.mediaTab.toLowerCase()}` : t.tabMedia}
+          {light ? `${shown.media} ${t.mediaTab.toLowerCase()}` : t.tabMedia}
         </button>
       </nav>
 

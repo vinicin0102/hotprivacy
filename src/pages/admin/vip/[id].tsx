@@ -63,6 +63,10 @@ interface Settings {
   planNote?: string;
   promoTitle?: string;
   barText?: string;
+  showImages?: string;
+  showVideos?: string;
+  showPosts?: string;
+  showMedia?: string;
 }
 interface Product {
   id: string;
@@ -268,6 +272,29 @@ export default function VipGroupEditor() {
             </div>
           </div>
           <div className="field">
+            <label>Números mostrados no perfil</label>
+            <div className="grid-2">
+              {(
+                [
+                  ["showImages", "Fotos"],
+                  ["showVideos", "Vídeos"],
+                  ["showPosts", "Postagens (aba)"],
+                  ["showMedia", "Mídias (aba)"],
+                ] as const
+              ).map(([k, label]) => (
+                <input
+                  key={k}
+                  className="input"
+                  aria-label={label}
+                  placeholder={`${label}: automático`}
+                  value={g.settings[k] ?? ""}
+                  onChange={(e) => setS({ [k]: e.target.value })}
+                />
+              ))}
+            </div>
+            <span className="hint">Vazio = conta sozinho pelos posts publicados.</span>
+          </div>
+          <div className="field">
             <label>VSL (vídeo de vendas)</label>
             <UploadInput accept="video/*" value={g.settings.vslUrl ?? ""} onChange={(vslUrl) => setS({ vslUrl })} placeholder="Envie o vídeo ou cole o link do YouTube/Vimeo/player" />
             <span className="hint">
@@ -435,7 +462,7 @@ export default function VipGroupEditor() {
                 </button>
               </div>
             ))}
-            {plans.length < 4 && (
+            {plans.length < 10 && (
               <button type="button" className="btn btn-sm" onClick={() => setS({ plans: [...plans, { productId: "" }] })} disabled={!g.productId}>
                 + Adicionar plano
               </button>
