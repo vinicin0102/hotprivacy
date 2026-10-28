@@ -54,6 +54,16 @@ export interface VipSettings {
   samplesTitle?: string;
   /** outros planos além da assinatura principal (ex.: 3 meses); qualquer um libera o VIP */
   plans?: VipPlan[];
+  /** faixa no topo (tema claro); {hoje} vira a data do dia */
+  promoBar?: string;
+  /** selo acima do plano principal, ex.: "MAIS POPULAR 🔥" */
+  planBadge?: string;
+  /** selo abaixo do plano principal, ex.: "+ VÍDEO EXCLUSIVO" */
+  planNote?: string;
+  /** título da lista de planos extras */
+  promoTitle?: string;
+  /** texto da barra fixa de baixo (tema claro); {preco} vira o preço da assinatura */
+  barText?: string;
 }
 export interface VipPlan {
   productId: string;
@@ -110,6 +120,11 @@ export function vipSettings(raw: unknown): VipSettings {
     ...opt("samples", s.samples === false ? false : undefined),
     ...opt("samplesTitle", str(s.samplesTitle)),
     ...opt("plans", plans.length ? plans : undefined),
+    ...opt("promoBar", str(s.promoBar)),
+    ...opt("planBadge", str(s.planBadge)),
+    ...opt("planNote", str(s.planNote)),
+    ...opt("promoTitle", str(s.promoTitle)),
+    ...opt("barText", str(s.barText)),
   };
 }
 

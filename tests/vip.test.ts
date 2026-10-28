@@ -71,3 +71,12 @@ test("link do VSL: player incorporado ou arquivo", () => {
   assert.equal(vslEmbed("/hot-secret/api/uploads/vsl.mp4"), null);
   assert.equal(vslEmbed("https://cdn.site.com/vsl.mp4"), null);
 });
+
+test("textos do tema claro: faixa, selos do plano e barra de baixo", () => {
+  const s = vipSettings({ promoBar: " VÁLIDA ATÉ {hoje} ", planBadge: "MAIS POPULAR", planNote: "", promoTitle: "Promoções", barText: "VEJA TUDO POR {preco}" });
+  assert.equal(s.promoBar, "VÁLIDA ATÉ {hoje}");
+  assert.equal(s.planBadge, "MAIS POPULAR");
+  assert.equal(s.planNote, undefined);
+  assert.equal(s.promoTitle, "Promoções");
+  assert.equal(s.barText, "VEJA TUDO POR {preco}");
+});

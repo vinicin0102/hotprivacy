@@ -134,7 +134,6 @@ export function VipProfile({ slug, sandbox, light: lightInitial = false }: { slu
   const showOffer = offerSub && ctaOpen;
   const buyFor = (p: Post) => (p.access === "paid" ? p.product : p.access === "vip" ? sub : null);
   const media = state.posts.flatMap((p) => p.media.map((m, i) => ({ ...m, post: p, i })));
-  const lockedCount = state.posts.reduce((n, p) => n + (p.locked ? p.media.length : 0), 0);
   // amostras: as mídias dos posts grátis, numa faixa antes do feed
   const samples =
     s.samples === false
@@ -163,17 +162,17 @@ export function VipProfile({ slug, sandbox, light: lightInitial = false }: { slu
         </>
       )}
       {light ? (
-        <div className="vg-plans">
-          {[{ label: s.ctaLabel || t.subscribe, badge: null, product: sub }, ...g.plans].map((p) => (
-            <button key={p.product.id} className="vg-plan" onClick={() => setBuying(p.product)}>
-              <span>
-                {p.label || p.product.name}
-                {p.badge && <em>{p.badge}</em>}
-              </span>
-              <b>{money(p.product.price, p.product.currency)}</b>
+        <>
+          <div className="vg-main-plan">
+            {s.planBadge && <span className="vg-plan-tag">{s.planBadge}</span>}
+            <button className="vg-plan is-main" onClick={() => setBuying(sub)}>
+              <span>{s.ctaLabel || t.subscribe}</span>
+              <b>{money(sub.price, sub.currency)}</b>
             </button>
-          ))}
-        </div>
+            {s.planNote && <span className="vg-plan-tag note">{s.planNote}</span>}
+          </div>
+          {g.plans.length > 0 && <Promos title={s.promoTitle || t.promos} plans={g.plans} onBuy={setBuying} />}
+        </>
       ) : (
         <>
           <div className="vg-sub-price">
@@ -205,10 +204,30 @@ export function VipProfile({ slug, sandbox, light: lightInitial = false }: { slu
 
   return (
     <div className={`vg-page ${light ? "light" : ""} ${showOffer ? "with-bar" : ""}`}>
+      {light && s.promoBar && <div className="vg-promo">{s.promoBar.replace(/\{hoje\}/gi, new Date().toLocaleDateString(locale))}</div>}
       {light && s.brand && <div className="vg-top">{s.brand}</div>}
       {!g.published && <div className="vg-draft">{t.draft}</div>}
       <header className="vg-head">
-        <div className="vg-cover" style={g.coverUrl ? { backgroundImage: `url(${g.coverUrl})` } : undefined} />
+        <div className="vg-cover" style={g.coverUrl ? { backgroundImage: `url(${g.coverUrl})` } : undefined}>
+          {light && (
+            <div className="vg-cover-info">
+              <h1 className="vg-cover-name">{g.name}</h1>
+              <div className="vg-istats">
+                <span>
+                  <Ico name="image" /> {g.counts.images}
+                </span>
+                <span>
+                  <Ico name="video" /> {g.counts.videos}
+                </span>
+                {s.likes && (
+                  <span>
+                    <Ico name="heart" /> {s.likes}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
         <div className="vg-id">
           <div className="vg-avatar">
             {g.avatarUrl ? (
@@ -218,31 +237,17 @@ export function VipProfile({ slug, sandbox, light: lightInitial = false }: { slu
               <span>{g.name.slice(0, 1)}</span>
             )}
           </div>
-          {light && (
-            <div className="vg-istats">
-              <span>
-                <Ico name="image" /> {g.counts.images}
-              </span>
-              <span>
-                <Ico name="video" /> {g.counts.videos}
-              </span>
-              <span>
-                <Ico name="lock" /> {lockedCount}
-              </span>
-              {s.likes && (
-                <span>
-                  <Ico name="heart" /> {s.likes}
+          {!light && (
+            <>
+              <h1 className="vg-name">
+                {g.name}
+                <span className="vg-verified" title={t.verified} aria-label={t.verified}>
+                  ✓
                 </span>
-              )}
-            </div>
+              </h1>
+              <div className="vg-handle">@{g.slug}</div>
+            </>
           )}
-          <h1 className="vg-name">
-            {g.name}
-            <span className="vg-verified" title={t.verified} aria-label={t.verified}>
-              ✓
-            </span>
-          </h1>
-          <div className="vg-handle">@{g.slug}</div>
           {!light && (
             <div className="vg-stats">
               <span>
@@ -261,24 +266,24 @@ export function VipProfile({ slug, sandbox, light: lightInitial = false }: { slu
               )}
             </div>
           )}
-          {g.bio && <Bio text={g.bio} t={t} light={light} />}
+          {!light && g.bio && <Bio text={g.bio} t={t} light={false} />}
         </div>
-        {light && (
-          <>
-            {vslEl}
-            {vipEl}
-            {offerEl}
-          </>
-        )}
       </header>
 
-      {!light && (
-        <>
-          {vslEl}
-          {vipEl}
-          {offerEl}
-        </>
+      {light && (
+        <section className="vg-card vg-about">
+          <b className="vg-about-name">{g.slug}</b>
+          <span className="vg-verified-ico" title={t.verified} aria-label={t.verified}>
+            <Ico name="verified" />
+          </span>
+          <div className="vg-handle">@{g.slug}</div>
+          {g.bio && <p className="vg-bio">{g.bio}</p>}
+        </section>
       )}
+
+      {vslEl}
+      {vipEl}
+      {offerEl}
 
       {samples.length > 0 && (
         <section className="vg-samples">
@@ -301,22 +306,10 @@ export function VipProfile({ slug, sandbox, light: lightInitial = false }: { slu
 
       <nav className="vg-tabs" role="tablist">
         <button role="tab" aria-selected={tab === "posts"} className={tab === "posts" ? "active" : ""} onClick={() => setTab("posts")}>
-          {light ? (
-            <>
-              <Ico name="post" /> {g.counts.posts} {t.postsTab}
-            </>
-          ) : (
-            t.tabPosts
-          )}
+          {light ? `${g.counts.posts} ${t.postsTab.toLowerCase()}` : t.tabPosts}
         </button>
         <button role="tab" aria-selected={tab === "media"} className={tab === "media" ? "active" : ""} onClick={() => setTab("media")}>
-          {light ? (
-            <>
-              <Ico name="video" /> {media.length} {t.mediaTab}
-            </>
-          ) : (
-            t.tabMedia
-          )}
+          {light ? `${media.length} ${t.mediaTab.toLowerCase()}` : t.tabMedia}
         </button>
       </nav>
 
@@ -374,7 +367,14 @@ export function VipProfile({ slug, sandbox, light: lightInitial = false }: { slu
       {showOffer && !buying && !subVisible && (
         <div className="vg-bar">
           <button className="vg-cta" onClick={() => setBuying(sub)}>
-            {s.ctaLabel || t.subscribe} · {money(sub.price, sub.currency)}
+            {light ? (
+              <>
+                <span>{(s.barText || t.barText).replace(/\{preco\}/gi, money(sub.price, sub.currency))}</span>
+                <Ico name="chevron" />
+              </>
+            ) : (
+              `${s.ctaLabel || t.subscribe} · ${money(sub.price, sub.currency)}`
+            )}
           </button>
         </div>
       )}
@@ -403,6 +403,33 @@ export function VipProfile({ slug, sandbox, light: lightInitial = false }: { slu
 /** o lead já tem este produto liberado (pagamento aprovado) */
 function isOwned(state: VipState, productId: string) {
   return state.payments.some((p) => p.productId === productId && p.status === "APPROVED");
+}
+
+/** planos extras numa lista que abre e fecha (aberta no começo) */
+function Promos({ title, plans, onBuy }: { title: string; plans: VipState["group"]["plans"]; onBuy: (p: Product) => void }) {
+  const { money } = useChatI18n();
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="vg-promos">
+      <button className={`vg-promos-head ${open ? "open" : ""}`} onClick={() => setOpen(!open)} aria-expanded={open}>
+        {title}
+        <Ico name="chevron" />
+      </button>
+      {open && (
+        <div className="vg-plans">
+          {plans.map((p) => (
+            <button key={p.product.id} className="vg-plan alt" onClick={() => onBuy(p.product)}>
+              <span>
+                {p.label || p.product.name}
+                {p.badge && <em>{p.badge}</em>}
+              </span>
+              <b>{money(p.product.price, p.product.currency)}</b>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Bio({ text, t, light }: { text: string; t: VipTexts; light: boolean }) {
@@ -451,6 +478,21 @@ const ICONS = {
   post: <rect x="7" y="2" width="10" height="20" rx="2" />,
   sound: <path d="M11 5L6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" />,
   play: <path d="M8 5v14l11-7z" fill="currentColor" />,
+  chevron: <path d="M9 6l6 6-6 6" />,
+  comment: <path d="M4 5h16v11H9l-5 4z" />,
+  dots: (
+    <>
+      <circle cx="12" cy="5" r="1.3" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.3" fill="currentColor" />
+      <circle cx="12" cy="19" r="1.3" fill="currentColor" />
+    </>
+  ),
+  verified: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8 12.5l2.7 2.7L16 9.8" />
+    </>
+  ),
 };
 
 /** ícones de traço do tema claro */
@@ -618,21 +660,19 @@ function PostCard({
           <span className="vg-post-ini">{group.name.slice(0, 1)}</span>
         )}
         <div>
-          <b>
-            {group.name}
-            {light && (
-              <span className="vg-verified" title={t.verified} aria-label={t.verified}>
-                ✓
-              </span>
-            )}
-          </b>
+          <b>{light ? group.slug : group.name}</b>
           <small>
-            {light ? `@${group.slug} · ` : ""}
-            {timeAgo(post.publishedAt, locale)}
+            {light ? `@${group.slug}` : timeAgo(post.publishedAt, locale)}
             {post.pinned ? ` · 📌 ${t.pinned}` : ""}
           </small>
         </div>
-        {post.access !== "free" && <span className={`vg-badge ${post.access}`}>{post.access === "vip" ? "💎 VIP" : "💰"}</span>}
+        {light ? (
+          <span className="vg-post-dots" aria-hidden="true">
+            <Ico name="dots" />
+          </span>
+        ) : (
+          post.access !== "free" && <span className={`vg-badge ${post.access}`}>{post.access === "vip" ? "💎 VIP" : "💰"}</span>
+        )}
       </div>
       {post.caption && <p className="vg-post-text">{post.caption}</p>}
       {post.media.length > 0 &&
@@ -646,7 +686,7 @@ function PostCard({
             )}
             <span className="vg-locked-inner">
               <span className="vg-lock-ico">{light ? <Ico name="lock" /> : "🔒"}</span>
-              <b>{post.access === "paid" ? t.paidContent : t.vipContent}</b>
+              {!light && <b>{post.access === "paid" ? t.paidContent : t.vipContent}</b>}
               {light ? (
                 <small className="vg-lock-counts">
                   {post.counts.images > 0 && (
@@ -663,7 +703,7 @@ function PostCard({
               ) : (
                 counts && <small>{counts}</small>
               )}
-              {buy && (
+              {buy && !light && (
                 <span className="vg-locked-cta">
                   {(post.access === "paid" ? t.unlockFor : t.subscribeToSee).replace("{p}", money(buy.price, buy.currency))}
                 </span>
@@ -711,11 +751,9 @@ function PostCard({
           <button className={liked ? "on" : ""} aria-label={t.like} aria-pressed={liked} onClick={() => setLiked(!liked)}>
             <Ico name="heart" />
           </button>
-          {post.locked && buy && (
-            <button aria-label={t.payTitle} onClick={() => onBuy(buy)}>
-              <Ico name="coin" />
-            </button>
-          )}
+          <button aria-label={t.payTitle} onClick={() => post.locked && buy && onBuy(buy)}>
+            <Ico name="comment" />
+          </button>
           <button className={`end ${saved ? "on" : ""}`} aria-label={t.save} aria-pressed={saved} onClick={() => setSaved(!saved)}>
             <Ico name="bookmark" />
           </button>

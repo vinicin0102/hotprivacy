@@ -41,6 +41,8 @@ const pt = {
   like: "Curtir",
   save: "Salvar",
   readMore: "Ler mais",
+  promos: "Promoções",
+  barText: "VEJA TUDO POR APENAS {preco}",
 };
 export type VipTexts = typeof pt;
 
@@ -84,6 +86,8 @@ const es: VipTexts = {
   like: "Me gusta",
   save: "Guardar",
   readMore: "Leer más",
+  promos: "Promociones",
+  barText: "MIRA TODO POR SOLO {preco}",
 };
 
 const esAR: VipTexts = { ...es, youAreVip: "💎 Sos VIP — todo desbloqueado", headline: "Entrá a mi VIP y mirá todo sin censura 🔥", subscribeToSee: "Suscribite para ver · {p}", error: "No se pudo cargar. Tocá para intentar de nuevo.", draft: "Borrador — solo vos ves esta página", perksTitle: "Al suscribirte tenés:", vslUnmuteSub: "Hacé clic para escuchar" };

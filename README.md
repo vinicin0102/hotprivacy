@@ -185,6 +185,9 @@ O perfil público `/g/<slug>` (painel → **Grupo VIP**) também serve de págin
 - **Amostras grátis**: faixa com as fotos/vídeos dos posts 🌐 Grátis, antes do feed.
 - **Planos extras** (até 4, ex.: 3 meses, vitalício): botões abaixo da assinatura principal, com selo
   opcional. Qualquer plano pago libera os posts 💎 Só VIP.
+- **Tema claro** (perfil de criadora): faixa laranja no topo (`{hoje}` vira a data do dia), capa com
+  nome e números, card da bio, card **Assinaturas** com selos acima/abaixo do plano principal e a lista
+  de **Promoções** (planos extras), feed em duas colunas e barra fixa de baixo (`{preco}` vira o preço).
 
 ### Pagamentos
 

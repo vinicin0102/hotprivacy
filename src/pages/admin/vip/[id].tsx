@@ -58,6 +58,11 @@ interface Settings {
   samples?: boolean;
   samplesTitle?: string;
   plans?: Plan[];
+  promoBar?: string;
+  planBadge?: string;
+  planNote?: string;
+  promoTitle?: string;
+  barText?: string;
 }
 interface Product {
   id: string;
@@ -235,6 +240,21 @@ export default function VipGroupEditor() {
               ))}
             </div>
           </div>
+          {g.settings.theme === "light" && (
+            <div className="field">
+              <label htmlFor="vg-promo">Faixa laranja no topo</label>
+              <input
+                id="vg-promo"
+                className="input"
+                placeholder="ESSA PROMOÇÃO É VÁLIDA ATÉ {hoje}"
+                value={g.settings.promoBar ?? ""}
+                onChange={(e) => setS({ promoBar: e.target.value })}
+              />
+              <span className="hint">
+                <code>{"{hoje}"}</code> vira a data do dia. Vazio = sem faixa.
+              </span>
+            </div>
+          )}
           <div className="grid-2">
             {g.settings.theme === "light" && (
               <div className="field">
@@ -352,10 +372,49 @@ export default function VipGroupEditor() {
             />
           </div>
           <div className="field">
-            <label htmlFor="vg-cta">Texto do botão</label>
-            <input id="vg-cta" className="input" placeholder="ASSINAR VIP" value={g.settings.ctaLabel ?? ""} onChange={(e) => set({ settings: { ...g.settings, ctaLabel: e.target.value } })} />
+            <label htmlFor="vg-cta">{g.settings.theme === "light" ? "Nome do plano principal" : "Texto do botão"}</label>
+            <input id="vg-cta" className="input" placeholder={g.settings.theme === "light" ? "30 DIAS" : "ASSINAR VIP"} value={g.settings.ctaLabel ?? ""} onChange={(e) => set({ settings: { ...g.settings, ctaLabel: e.target.value } })} />
           </div>
           {g.productId && !sub && <p className="error-text">O produto da assinatura não está disponível (inativo ou de outra moeda).</p>}
+          {g.settings.theme === "light" && (
+            <>
+              <div className="grid-2">
+                <div className="field">
+                  <label htmlFor="vg-badge">Selo acima do plano</label>
+                  <input id="vg-badge" className="input" placeholder="MAIS POPULAR 🔥🔥" value={g.settings.planBadge ?? ""} onChange={(e) => setS({ planBadge: e.target.value })} />
+                </div>
+                <div className="field">
+                  <label htmlFor="vg-note">Selo abaixo do plano</label>
+                  <input
+                    id="vg-note"
+                    className="input"
+                    placeholder="+ VÍDEO EXCLUSIVO SÓ PARA VOCÊ!"
+                    value={g.settings.planNote ?? ""}
+                    onChange={(e) => setS({ planNote: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid-2">
+                <div className="field">
+                  <label htmlFor="vg-ptitle">Título dos planos extras</label>
+                  <input id="vg-ptitle" className="input" placeholder="Promoções" value={g.settings.promoTitle ?? ""} onChange={(e) => setS({ promoTitle: e.target.value })} />
+                </div>
+                <div className="field">
+                  <label htmlFor="vg-bar">Barra fixa de baixo</label>
+                  <input
+                    id="vg-bar"
+                    className="input"
+                    placeholder="VEJA TUDO POR APENAS {preco}"
+                    value={g.settings.barText ?? ""}
+                    onChange={(e) => setS({ barText: e.target.value })}
+                  />
+                  <span className="hint">
+                    <code>{"{preco}"}</code> vira o preço da assinatura.
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="field">
             <label>Planos extras</label>
