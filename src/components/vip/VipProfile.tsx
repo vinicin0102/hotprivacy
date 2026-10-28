@@ -715,17 +715,7 @@ function PostCard({
             <div className="vg-media-track" ref={scroller} onScroll={many ? onScroll : undefined}>
               {post.media.map((m, i) =>
                 m.kind === "video" ? (
-                  <video
-                    key={i}
-                    src={m.url!}
-                    poster={undefined}
-                    controls
-                    playsInline
-                    preload="metadata"
-                    controlsList="nodownload noremoteplayback"
-                    disablePictureInPicture
-                    onContextMenu={(e) => e.preventDefault()}
-                  />
+                  <PlayVideo key={i} src={m.url!} />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img key={i} src={m.url!} alt="" loading="lazy" onClick={() => onOpen(i)} onContextMenu={(e) => e.preventDefault()} />
@@ -760,6 +750,41 @@ function PostCard({
         </div>
       )}
     </article>
+  );
+}
+
+/** vídeo sem a barra de controles: só o play no meio; tocar no vídeo pausa e continua */
+function PlayVideo({ src, autoPlay = false }: { src: string; autoPlay?: boolean }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const toggle = () => {
+    const v = ref.current;
+    if (!v) return;
+    if (v.paused) void v.play().catch(() => undefined);
+    else v.pause();
+  };
+  return (
+    <div className="vg-play">
+      <video
+        ref={ref}
+        // #t=0.1: o celular mostra o primeiro quadro em vez de um retângulo preto
+        src={`${src}#t=0.1`}
+        autoPlay={autoPlay}
+        playsInline
+        preload="metadata"
+        disablePictureInPicture
+        onClick={toggle}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+        onContextMenu={(e) => e.preventDefault()}
+      />
+      {!playing && (
+        <button className="vg-play-btn" onClick={toggle} aria-label="Play">
+          <Ico name="play" />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -900,7 +925,7 @@ function Viewer({ items, start, t, onClose }: { items: { kind: string; url: stri
         ✕
       </button>
       {m.kind === "video" ? (
-        <video key={m.url} src={m.url} controls autoPlay playsInline controlsList="nodownload noremoteplayback" disablePictureInPicture />
+        <PlayVideo key={m.url} src={m.url} autoPlay />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img key={m.url} src={m.url} alt="" />
