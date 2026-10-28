@@ -190,6 +190,15 @@ O perfil público `/g/<slug>` (painel → **Grupo VIP**) também serve de págin
   de **Promoções** (planos extras), feed em duas colunas e barra fixa de baixo (`{preco}` vira o preço).
 - **Números do perfil**: fotos, vídeos, postagens e mídias podem ser digitados no painel; vazio = contagem real.
 
+### Página de links ("link na bio")
+
+Painel → **Links**: uma página por modelo em `/l/<slug>`, no estilo link na bio. Foto principal que se
+dissolve no card com o nome por cima (letra de pincel, elegante ou moderna), fundo borrado, texto
+opcional e até 30 botões com título, link, miniatura e destaque pulsando. As cores do card, do texto e
+dos botões são editáveis, e o editor mostra a prévia ao vivo. **+ Grupo VIP** adiciona o link de um grupo
+em um clique. Links sem `https://` ganham o prefixo sozinhos; `javascript:` e afins são recusados.
+A lista mostra quantas visitas cada página teve (visitas do dono logado não contam).
+
 ### Pagamentos
 
 `payment_created → payment_pending → payment_approved | payment_failed → payment_refunded`.

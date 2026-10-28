@@ -540,3 +540,25 @@ model VipPost {
   @@index([groupId, publishedAt])
   @@map("vip_posts")
 }
+
+/// Página de links (estilo "link na bio") de uma modelo: foto, nome, bio e botões com títulos e links
+model LinkPage {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  /// nome exibido em destaque sobre a foto
+  name      String
+  photoUrl  String?
+  /// fundo borrado atrás do card (vazio = a própria foto)
+  bgUrl     String?
+  bio       String?
+  /// { font, cardColor, textColor, buttonColor }
+  settings  Json     @default("{}")
+  /// [{ id, title, url, thumbUrl?, highlight? }]
+  links     Json     @default("[]")
+  published Boolean  @default(false)
+  views     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("link_pages")
+}

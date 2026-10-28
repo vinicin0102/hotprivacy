@@ -5,6 +5,7 @@ import "@/styles/globals.css";
 import "@/styles/chat.css";
 import "@/styles/admin.css";
 import "@/styles/builder.css";
+import "@/styles/links.css";
 // fontes do painel (servidas pelo próprio site) + identidade do painel
 import "@fontsource-variable/unbounded";
 import "@fontsource-variable/instrument-sans";
