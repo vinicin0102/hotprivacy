@@ -39,6 +39,8 @@ export interface VipSettings {
   theme?: "light";
   /** marca na barra do topo (tema claro) */
   brand?: string;
+  /** logo na barra do topo (imagem enviada); com a marca preenchida, as duas aparecem lado a lado no tema claro */
+  logoUrl?: string;
   /** curtidas mostradas no perfil (texto livre, ex.: "52.3K") */
   likes?: string;
   /** VSL: vídeo de vendas no topo (arquivo enviado ou link do YouTube/Vimeo/player com /embed) */
@@ -92,6 +94,11 @@ export function vipMedia(raw: unknown): VipMedia[] {
 }
 
 const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
+/** imagem enviada ou https (nada de javascript:/data:) */
+const imageUrl = (v: unknown) => {
+  const u = str(v);
+  return u && (/^https:\/\//i.test(u) || (u.startsWith("/") && !u.startsWith("//"))) ? u : undefined;
+};
 
 function vipPlans(raw: unknown): VipPlan[] {
   if (!Array.isArray(raw)) return [];
@@ -117,6 +124,7 @@ export function vipSettings(raw: unknown): VipSettings {
     anyPurchase: s.anyPurchase !== false,
     ...opt("theme", s.theme === "light" ? "light" : undefined),
     ...opt("brand", str(s.brand)),
+    ...opt("logoUrl", imageUrl(s.logoUrl)),
     ...opt("likes", str(s.likes)),
     ...opt("vslUrl", str(s.vslUrl)),
     ...opt("vslPoster", str(s.vslPoster)),

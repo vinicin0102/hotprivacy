@@ -212,7 +212,15 @@ export function VipProfile({ slug, sandbox, light: lightInitial = false }: { slu
   return (
     <div className={`vg-page ${light ? "light" : ""} ${showOffer ? "with-bar" : ""}`}>
       {light && s.promoBar && <div className="vg-promo">{s.promoBar.replace(/\{hoje\}/gi, new Date().toLocaleDateString(locale))}</div>}
-      {light && s.brand && <div className="vg-top">{s.brand}</div>}
+      {(s.logoUrl || (light && s.brand)) && (
+        <div className="vg-top">
+          {s.logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="vg-logo" src={s.logoUrl} alt={s.brand || g.name} />
+          )}
+          {light && s.brand && <span>{s.brand}</span>}
+        </div>
+      )}
       {!g.published && <div className="vg-draft">{t.draft}</div>}
       <header className="vg-head">
         <div className="vg-cover" style={g.coverUrl ? { backgroundImage: `url(${g.coverUrl})` } : undefined}>

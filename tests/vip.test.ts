@@ -88,3 +88,10 @@ test("números do perfil editáveis e até 10 planos extras", () => {
   assert.equal(s.showPosts, "93");
   assert.equal(s.plans?.length, 10);
 });
+
+test("logo da página de vendas: só imagem enviada ou https", () => {
+  assert.equal(vipSettings({ logoUrl: " /hot-secret/api/uploads/logo.png " }).logoUrl, "/hot-secret/api/uploads/logo.png");
+  assert.equal(vipSettings({ logoUrl: "https://cdn.site.com/logo.png" }).logoUrl, "https://cdn.site.com/logo.png");
+  assert.equal(vipSettings({ logoUrl: "javascript:alert(1)" }).logoUrl, undefined);
+  assert.equal(vipSettings({ logoUrl: "//evil.com/x.png" }).logoUrl, undefined);
+});

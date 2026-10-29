@@ -50,6 +50,7 @@ interface Settings {
   anyPurchase?: boolean;
   theme?: "dark" | "light";
   brand?: string;
+  logoUrl?: string;
   likes?: string;
   vslUrl?: string;
   vslPoster?: string;
@@ -259,6 +260,13 @@ export default function VipGroupEditor() {
               </span>
             </div>
           )}
+          <div className="field">
+            <label>Logo no topo</label>
+            <UploadInput value={g.settings.logoUrl ?? ""} onChange={(logoUrl) => setS({ logoUrl })} />
+            <span className="hint">
+              PNG com fundo transparente fica melhor. {g.settings.theme === "light" ? "Com a marca preenchida, os dois aparecem lado a lado; para só a logo, deixe a marca vazia." : ""}
+            </span>
+          </div>
           <div className="grid-2">
             {g.settings.theme === "light" && (
               <div className="field">

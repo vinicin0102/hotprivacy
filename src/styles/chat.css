@@ -4951,8 +4951,10 @@ img.call-avatar {
   background: #ff6a1f;
 }
 .vg-top {
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   height: 70px;
   font-size: 26px;
   font-weight: 800;
@@ -4960,6 +4962,18 @@ img.call-avatar {
   color: #333;
   background: #fff;
   border-bottom: 1px solid var(--vl-line);
+}
+.vg-logo {
+  display: block;
+  max-width: 220px;
+  max-height: 42px;
+  object-fit: contain;
+}
+/* tema escuro: a barra do topo só aparece com a logo */
+.vg-page:not(.light) .vg-top {
+  height: 64px;
+  background: transparent;
+  border-bottom: 1px solid var(--border);
 }
 .light .vg-head {
   position: relative;

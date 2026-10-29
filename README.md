@@ -188,6 +188,7 @@ O perfil público `/g/<slug>` (painel → **Grupo VIP**) também serve de págin
 - **Tema claro** (perfil de criadora): faixa laranja no topo (`{hoje}` vira a data do dia), capa com
   nome e números, card da bio, card **Assinaturas** com selos acima/abaixo do plano principal e a lista
   de **Promoções** (planos extras), feed em duas colunas e barra fixa de baixo (`{preco}` vira o preço).
+- **Logo no topo**: imagem enviada no editor (nos dois temas); no tema claro aparece ao lado da marca, se preenchida.
 - **Números do perfil**: fotos, vídeos, postagens e mídias podem ser digitados no painel; vazio = contagem real.
 
 ### Página de links ("link na bio")
