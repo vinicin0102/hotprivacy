@@ -191,6 +191,15 @@ O perfil público `/g/<slug>` (painel → **Grupo VIP**) também serve de págin
 - **Logo no topo**: imagem enviada no editor (nos dois temas); no tema claro aparece ao lado da marca, se preenchida.
 - **Números do perfil**: fotos, vídeos, postagens e mídias podem ser digitados no painel; vazio = contagem real.
 
+### Link da chamada de vídeo (sem chat)
+
+No editor de cada vídeo (**Vídeos → vídeo**), o card **📞 Link da chamada** gera `/c/<slug>`: a chamada toca,
+a pessoa atende e cai direto no vídeo, já liberado (para mandar a quem já comprou). Os upsells marcados na
+linha do tempo aparecem nos mesmos momentos da chamada do chat e são pagos ali mesmo (PIX; os pagamentos
+ficam marcados com `offerNodeId = call:<id do vídeo>`). Escolha a modelo (nome e foto) ou digite outros, o
+país (idioma e moeda dos upsells) e se o vídeo começa do início ou do trecho VIP. Cada visitante vira um
+lead (com UTM) e as compras dos upsells "Grupo VIP" liberam o grupo, como no chat.
+
 ### Página de links ("link na bio")
 
 Painel → **Links**: uma página por modelo em `/l/<slug>`, no estilo link na bio. Foto principal que se

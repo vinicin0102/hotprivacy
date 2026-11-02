@@ -490,6 +490,10 @@ model Video {
   durationMs Int      @default(0)
   /// { free: {start,end}, vip: {start,end}, chat: [{id,start,end,text}], markers: [{id,at,label,productId,text,ctaLabel,pause}] } (ms)
   timeline   Json     @default("{}")
+  /// link da chamada sem chat: /c/<callSlug>
+  callSlug     String?  @unique
+  /// { published, characterId, name, avatarUrl, locale, startAt }
+  callSettings Json     @default("{}")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

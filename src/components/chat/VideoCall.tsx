@@ -379,7 +379,13 @@ export function CallScreen({
   previewMode,
   freePreview,
   onBuyMain,
+  alreadyPaid,
+  startAtVip,
 }: {
+  /** link da chamada (sem chat): quem abre já comprou — o vídeo toca direto, só os upsells cobram */
+  alreadyPaid?: boolean;
+  /** já liberado: começa do trecho VIP em vez do início do vídeo */
+  startAtVip?: boolean;
   /** chamada de vídeo 02: antes de pagar, o trecho FREE toca uma vez e no fim dele aparece a oferta (como upsell) */
   freePreview?: boolean;
   /** chamada de vídeo 02: o lead tocou em pagar a oferta principal (ou um ingresso de uma "Oferta" no FREE) */
@@ -420,7 +426,7 @@ export function CallScreen({
       .flatMap((m) => [m.productId, m.basicProductId ?? ""])
       .filter(Boolean),
   );
-  const paid = forNode.some((p) => p.status === "APPROVED" && (p.productId === mainProduct?.id || freeOfferIds.has(p.productId)));
+  const paid = !!alreadyPaid || forNode.some((p) => p.status === "APPROVED" && (p.productId === mainProduct?.id || freeOfferIds.has(p.productId)));
   const mainPayment = mainPayments.sort((a, b) => (a.status === "APPROVED" ? -1 : b.status === "APPROVED" ? 1 : 0))[0];
   const boughtUpsell = (pid: string) => forNode.some((p) => p.productId === pid && p.status === "APPROVED");
   const upsellPayment = upsell ? forNode.find((p) => p.productId === upsell.productId && p.status !== "FAILED") : undefined;
@@ -431,7 +437,7 @@ export function CallScreen({
   // o loop de animação lê sempre o estado atual por aqui
   /** já viu o FREE (chamada de vídeo 02): depois de pagar, segue direto do VIP */
   const sawFree = useRef(false);
-  if (freePreview) sawFree.current = true;
+  if (freePreview || startAtVip) sawFree.current = true;
   /** o FREE acabou e a "Oferta" marcada está na tela: fechar desliga (não há mais nada grátis para ver) */
   const freeEnded = useRef(false);
   /** sem "Oferta" no vídeo: o upgrade do fim do FREE usa o produto da chamada */

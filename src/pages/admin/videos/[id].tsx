@@ -6,7 +6,9 @@ import { useRouter } from "next/router";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useFetch } from "@/hooks/useFetch";
 import { api } from "@/lib/client";
-import { asCurrency, productOption } from "@/lib/format";
+import { asCurrency, productOption, slugify } from "@/lib/format";
+import { withBase } from "@/lib/paths";
+import { UploadInput } from "@/components/admin/UploadInput";
 import { shortId } from "@/features/chat-engine/engine";
 import { formatMs, normalizeTimeline, type VideoTimeline } from "@/types/video";
 import { UpsellScreenEditor } from "@/components/admin/UpsellScreenEditor";
@@ -19,6 +21,18 @@ interface VideoData {
   posterUrl: string | null;
   durationMs: number;
   timeline: VideoTimeline;
+  callSlug: string | null;
+  callSettings: CallLink;
+}
+/** link da chamada sem chat (/c/…): quem já comprou atende e cai direto no vídeo */
+interface CallLink {
+  slug?: string | null;
+  published: boolean;
+  characterId: string | null;
+  name: string | null;
+  avatarUrl: string | null;
+  locale: "pt-BR" | "es-MX" | "es-AR";
+  startAt: "start" | "vip";
 }
 interface Product {
   id: string;
@@ -46,10 +60,13 @@ export default function VideoEditorPage() {
   const { data: prod } = useFetch<{ products: Product[] }>("/api/admin/products");
   const { data: vipData } = useFetch<{ groups: { id: string; name: string; published: boolean; productId: string | null }[] }>("/api/admin/vip");
   const vipGroups = vipData?.groups ?? [];
+  const { data: chars } = useFetch<{ characters: { id: string; name: string; avatarUrl: string | null }[] }>("/api/admin/characters");
   const products = prod?.products ?? [];
 
   const [video, setVideo] = useState<VideoData | null>(null);
   const [tl, setTl] = useState<VideoTimeline | null>(null);
+  const [call, setCall] = useState<CallLink | null>(null);
+  const [copied, setCopied] = useState(false);
   const [savedJson, setSavedJson] = useState("");
   const [sel, setSel] = useState<Sel>(null);
   const [zoom, setZoom] = useState(1);
@@ -66,15 +83,17 @@ export default function VideoEditorPage() {
 
   useEffect(() => {
     if (!data?.video || video) return;
+    const c: CallLink = { ...data.video.callSettings, slug: data.video.callSlug ?? "" };
     setVideo(data.video);
     setTl(data.video.timeline);
-    setSavedJson(JSON.stringify({ name: data.video.name, timeline: data.video.timeline, durationMs: data.video.durationMs }));
+    setCall(c);
+    setSavedJson(JSON.stringify({ name: data.video.name, timeline: data.video.timeline, durationMs: data.video.durationMs, call: c }));
   }, [data, video]);
 
   const duration = video?.durationMs || 1;
   const laneW = laneBase * zoom;
   const msToX = useCallback((ms: number) => (ms / duration) * laneW, [duration, laneW]);
-  const dirty = !!video && !!tl && JSON.stringify({ name: video.name, timeline: tl, durationMs: video.durationMs }) !== savedJson;
+  const dirty = !!video && !!tl && JSON.stringify({ name: video.name, timeline: tl, durationMs: video.durationMs, call }) !== savedJson;
 
   // largura disponível para a linha do tempo
   useEffect(() => {
@@ -213,9 +232,9 @@ export default function VideoEditorPage() {
     try {
       await api(`/api/admin/videos/${video.id}`, {
         method: "PUT",
-        body: { name: video.name, url: video.url, posterUrl: video.posterUrl, durationMs: video.durationMs, timeline: tl },
+        body: { name: video.name, url: video.url, posterUrl: video.posterUrl, durationMs: video.durationMs, timeline: tl, call },
       });
-      setSavedJson(JSON.stringify({ name: video.name, timeline: tl, durationMs: video.durationMs }));
+      setSavedJson(JSON.stringify({ name: video.name, timeline: tl, durationMs: video.durationMs, call }));
       setMsg({ text: "Salvo ✓" });
     } catch (e) {
       setMsg({ text: e instanceof Error ? e.message : "Erro ao salvar", error: true });
@@ -249,7 +268,7 @@ export default function VideoEditorPage() {
     seek(at);
   };
 
-  if (!video || !tl) {
+  if (!video || !tl || !call) {
     return (
       <AdminLayout title="Vídeo">
         <div className="card">Carregando...</div>
@@ -705,6 +724,125 @@ export default function VideoEditorPage() {
             )}
             {(selMarker.at < tl.vip.start || selMarker.at > tl.vip.end) && <p className="error-text">Este marcador está fora do trecho VIP e não vai aparecer.</p>}
           </>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="card-head">
+          <h3>📞 Link da chamada (sem chat)</h3>
+          <label className="checkbox">
+            <input type="checkbox" checked={call.published} onChange={(e) => setCall({ ...call, published: e.target.checked })} /> Publicado
+          </label>
+        </div>
+        <p className="hint" style={{ marginTop: -6 }}>
+          Para mandar a quem já comprou: o link abre a chamada tocando, a pessoa atende e cai direto neste vídeo (já liberado). Os upsells marcados
+          acima aparecem nos mesmos momentos e são pagos ali mesmo. Não tem chat.
+        </p>
+        <div className="grid-2">
+          <div className="field">
+            <label htmlFor="cl-slug">Link (/c/…)</label>
+            <input
+              id="cl-slug"
+              className="input"
+              placeholder={slugify(video.name) || "minha-chamada"}
+              value={call.slug ?? ""}
+              onChange={(e) => setCall({ ...call, slug: slugify(e.target.value) })}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="cl-model">Modelo (nome e foto da chamada)</label>
+            <select id="cl-model" className="select" value={call.characterId ?? ""} onChange={(e) => setCall({ ...call, characterId: e.target.value || null })}>
+              <option value="">— nenhuma —</option>
+              {chars?.characters.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="grid-2">
+          <div className="field">
+            <label htmlFor="cl-name">Nome na chamada (opcional)</label>
+            <input
+              id="cl-name"
+              className="input"
+              placeholder={chars?.characters.find((c) => c.id === call.characterId)?.name ?? "Nome da modelo"}
+              value={call.name ?? ""}
+              onChange={(e) => setCall({ ...call, name: e.target.value || null })}
+            />
+          </div>
+          <div className="field">
+            <label>Foto na chamada (opcional)</label>
+            <UploadInput value={call.avatarUrl ?? ""} onChange={(avatarUrl) => setCall({ ...call, avatarUrl: avatarUrl || null })} />
+          </div>
+        </div>
+        <div className="grid-2">
+          <div className="field">
+            <label>País (idioma e moeda dos upsells)</label>
+            <div className="segmented">
+              {(
+                [
+                  ["pt-BR", "🇧🇷 R$"],
+                  ["es-MX", "🇲🇽 MXN"],
+                  ["es-AR", "🇦🇷 ARS"],
+                ] as const
+              ).map(([v, label]) => (
+                <button key={v} type="button" className={call.locale === v ? "active" : ""} onClick={() => setCall({ ...call, locale: v })}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="field">
+            <label>Ao atender, o vídeo começa</label>
+            <div className="segmented">
+              {(
+                [
+                  ["start", "Do início"],
+                  ["vip", "Do trecho VIP"],
+                ] as const
+              ).map(([v, label]) => (
+                <button key={v} type="button" className={call.startAt === v ? "active" : ""} onClick={() => setCall({ ...call, startAt: v })}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        {(() => {
+          // o link cobra na moeda do país escolhido: upsell de outra moeda não aparece
+          const cur = call.locale === "pt-BR" ? "BRL" : call.locale === "es-MX" ? "MXN" : "ARS";
+          const ids = new Set(tl.markers.flatMap((m) => [m.productId, m.basicProductId ?? ""]));
+          const off = products.filter((p) => ids.has(p.id) && asCurrency(p.currency) !== cur);
+          return off.length ? (
+            <p className="hint warn-text">
+              ⚠ {off.map((p) => `“${p.name}”`).join(" e ")} não {off.length > 1 ? "são" : "é"} em {cur}: não aparece{off.length > 1 ? "m" : ""} neste link.
+            </p>
+          ) : null;
+        })()}
+        {call.published && !call.slug && <p className="error-text">Escolha o link (/c/…) para publicar.</p>}
+        {call.slug && (
+          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+            <a className="btn btn-sm" href={withBase(`/c/${call.slug}`)} target="_blank" rel="noreferrer">
+              Abrir chamada ↗
+            </a>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => {
+                void navigator.clipboard.writeText(`${window.location.origin}${withBase(`/c/${call.slug}`)}`).catch(() => undefined);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+            >
+              {copied ? "Copiado ✓" : "Copiar link"}
+            </button>
+            <span className="hint">
+              {dirty ? "Salve para o link valer. " : ""}
+              {call.published ? "" : "Em rascunho: só você (logado no painel) consegue abrir."}
+            </span>
+          </div>
         )}
       </div>
 

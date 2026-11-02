@@ -4,12 +4,11 @@
 import type { NextApiRequest } from "next";
 import type { Product, VipGroup, VipPost } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { HttpError, getClientIp } from "@/lib/api";
+import { HttpError } from "@/lib/api";
 import { ADMIN_COOKIE, signVipToken, verifyAdminSession, verifyVipToken, type VipSession } from "@/lib/auth";
 import { asCurrency, currencyOfLocale } from "@/lib/format";
-import { parseUserAgent } from "@/lib/device";
-import { sanitizeUrl } from "@/lib/sanitize";
 import { trackEvent } from "./tracking";
+import { createVisitorLead } from "./visitor-lead";
 import { providerNameForCurrency } from "./payments/index";
 import { zenithDefaultPayer } from "./payments/zenith";
 import { chargeProduct, publicPayment, syncPaymentWithProvider } from "./payments/service";
@@ -319,7 +318,6 @@ export async function vipState(group: GroupWithPosts, leadId: string | null) {
 }
 export type VipState = Awaited<ReturnType<typeof vipState>>;
 
-const tu = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim().slice(0, 500) : null);
 
 /**
  * Sessão do visitante: retoma o token do grupo; "acesso" = token que o chat entrega junto com o link do grupo
@@ -336,29 +334,8 @@ export async function vipSession(
       return { token: t === input.token ? t! : await signVipToken(s), leadId: s.leadId };
     }
   }
-  const ua = parseUserAgent(req.headers["user-agent"]);
-  const country = (req.headers["x-vercel-ip-country"] as string) || (req.headers["cf-ipcountry"] as string) || null;
-  const utm = input.utm ?? {};
-  const lead = await prisma.lead.create({
-    data: {
-      utmSource: tu(utm.utm_source),
-      utmMedium: tu(utm.utm_medium),
-      utmCampaign: tu(utm.utm_campaign),
-      utmContent: tu(utm.utm_content),
-      utmTerm: tu(utm.utm_term),
-      referrer: sanitizeUrl(input.referrer) || null,
-      landingPage: sanitizeUrl(input.landingPage) || null,
-      device: ua.device,
-      browser: ua.browser,
-      os: ua.os,
-      country: country ? country.slice(0, 8) : null,
-      clientIp: getClientIp(req).slice(0, 64),
-      userAgent: String(req.headers["user-agent"] ?? "").slice(0, 400) || null,
-      variables: { _grupoVip: group.slug },
-    },
-  });
-  await trackEvent({ leadId: lead.id, type: "page_view", data: { vipGroup: group.id } });
-  return { token: await signVipToken({ leadId: lead.id, groupId: group.id }), leadId: lead.id };
+  const leadId = await createVisitorLead(req, input, { _grupoVip: group.slug }, { vipGroup: group.id });
+  return { token: await signVipToken({ leadId, groupId: group.id }), leadId };
 }
 
 export async function requireVipSession(token: unknown, group: VipGroup): Promise<VipSession> {
