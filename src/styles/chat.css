@@ -3372,6 +3372,39 @@ img.call-avatar {
   -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
 }
+/* quadrinho "Você": vira botão para o lead ligar a própria câmera (a imagem fica só no aparelho dele) */
+button.call-self {
+  padding: 0;
+  overflow: hidden;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.call-self.on {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.call-self video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+.call-cam-denied {
+  position: absolute;
+  left: 50%;
+  bottom: calc(max(22px, env(safe-area-inset-bottom)) + 84px);
+  z-index: 6;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  transform: translateX(-50%);
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  text-align: center;
+  color: #fff;
+  background: rgba(10, 4, 10, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
 .call-connecting {
   background: #08040a;
 }

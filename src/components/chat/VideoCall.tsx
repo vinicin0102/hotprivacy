@@ -89,6 +89,11 @@ const CamOffIcon = () => (
     <path fill="currentColor" d="M17 10.5V7a1 1 0 0 0-1-1H8.8L17 14.2zM3.3 2.3 2 3.6 4.4 6H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12c.2 0 .4-.1.6-.2l3.8 3.8 1.3-1.3zM21 6.5l-4 4v.9l4 4z" />
   </svg>
 );
+const CamSmallIcon = () => (
+  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+    <path fill="currentColor" d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11z" />
+  </svg>
+);
 /** sinal de conexão da chamada (4 barras) */
 const SignalBars = () => (
   <span className="call-signal" aria-hidden="true">
@@ -412,6 +417,27 @@ export function CallScreen({
   const [upsell, setUpsell] = useState<CallVideo["markers"][number] | null>(null);
   const [upsellBuying, setUpsellBuying] = useState(false);
   const [soundOff, setSoundOff] = useState(false);
+  /**
+   * câmera do lead (quadrinho "Você"): fica só no aparelho dele — não é enviada, gravada nem vista por ninguém.
+   * Ligar pede a permissão do navegador; desligar/sair da chamada solta a câmera.
+   */
+  const [cam, setCam] = useState<MediaStream | null>(null);
+  const [camDenied, setCamDenied] = useState(false);
+  const selfRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    if (selfRef.current) selfRef.current.srcObject = cam;
+  }, [cam]);
+  useEffect(() => () => cam?.getTracks().forEach((tr) => tr.stop()), [cam]);
+  const toggleCam = async () => {
+    if (cam) return setCam(null);
+    try {
+      setCam(await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false }));
+      setCamDenied(false);
+    } catch {
+      setCamDenied(true);
+      setTimeout(() => setCamDenied(false), 3500);
+    }
+  };
   /** corações que o lead manda tocando no ♥ (sobem pela tela) */
   const [hearts, setHearts] = useState<{ id: number; x: number; d: number }[]>([]);
   const shown = useRef(new Set<string>());
@@ -629,10 +655,23 @@ export function CallScreen({
             </small>
           </div>
         </div>
-        <div className="call-self" title={`${tx.you} · ${tx.yourCamOff}`}>
-          <CamOffIcon />
-          <span>{tx.you}</span>
-        </div>
+        <button
+          type="button"
+          className={`call-self ${cam ? "on" : ""}`}
+          onClick={() => void toggleCam()}
+          aria-pressed={!!cam}
+          aria-label={cam ? tx.camTurnOff : tx.camTurnOn}
+          title={cam ? tx.camTurnOff : `${tx.you} · ${tx.yourCamOff}`}
+        >
+          {cam ? (
+            <video ref={selfRef} autoPlay muted playsInline disablePictureInPicture />
+          ) : (
+            <>
+              <CamOffIcon />
+              <span>{tx.you}</span>
+            </>
+          )}
+        </button>
       </div>
       {needsTap && (
         <button
@@ -752,6 +791,11 @@ export function CallScreen({
         </div>
       )}
 
+      {camDenied && (
+        <div className="call-cam-denied" role="status">
+          {tx.camDenied}
+        </div>
+      )}
       <div className="call-hearts" aria-hidden="true">
         {hearts.map((h) => (
           <span key={h.id} style={{ "--x": `${h.x}px`, "--d": `${h.d}s` } as React.CSSProperties}>
@@ -762,6 +806,9 @@ export function CallScreen({
       <div className="call-controls">
         <button className={`call-ctl ${soundOff ? "off" : ""}`} onClick={toggleSound} aria-label={soundOff ? tx.soundOff : tx.soundOn} aria-pressed={!soundOff}>
           <SpeakerIcon off={soundOff} />
+        </button>
+        <button className={`call-ctl ${cam ? "" : "off"}`} onClick={() => void toggleCam()} aria-label={cam ? tx.camTurnOff : tx.camTurnOn} aria-pressed={!!cam}>
+          {cam ? <CamSmallIcon /> : <CamOffIcon />}
         </button>
         <button className="call-btn decline call-hangup" onClick={onHangUp} aria-label={tx.hangUp}>
           <PhoneIcon down />
